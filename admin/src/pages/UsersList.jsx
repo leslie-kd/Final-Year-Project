@@ -1,13 +1,42 @@
+import React, { useState, useEffect } from 'react';
+import api from '../api';
 import './UsersList.css';
 
-const mockUsers = [
-  { id: 1, name: 'Alice Cooper', role: 'Provider', status: 'Active', joined: '2023-11-10' },
-  { id: 2, name: 'Bob Builder', role: 'Provider', status: 'Pending', joined: '2023-11-12' },
-  { id: 3, name: 'Charlie Prince', role: 'Client', status: 'Active', joined: '2023-11-15' },
-  { id: 4, name: 'Diana Prince', role: 'Client', status: 'Suspended', joined: '2023-10-01' },
-];
-
 export default function UsersList() {
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/admin/users');
+      setUsers(res.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const toggleVerification = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'verified' ? 'pending' : 'verified';
+    try {
+      await api.patch(`/admin/users/${id}/verify`, { status: newStatus });
+      fetchUsers();
+    } catch (error) {
+      console.error('Error verifying user:', error);
+    }
+  };
+
+  const toggleSuspension = async (id, isSuspended) => {
+    try {
+      await api.patch(`/admin/users/${id}/suspend`, { isSuspended: !isSuspended, suspensionReason: 'Admin action' });
+      fetchUsers();
+    } catch (error) {
+      console.error('Error suspending user:', error);
+    }
+  };
+
   return (
     <div className="animate-fade-in users-container">
       <div className="glass-card table-card">
@@ -21,20 +50,44 @@ export default function UsersList() {
               <tr>
                 <th>Name</th>
                 <th>Role</th>
+                <th>Verification</th>
                 <th>Status</th>
                 <th>Joined</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {mockUsers.map(user => (
-                <tr key={user.id}>
-                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.name}</td>
-                  <td><span className={`role-badge ${user.role.toLowerCase()}`}>{user.role}</span></td>
-                  <td><span className={`status-badge ${user.status.toLowerCase()}`}>{user.status}</span></td>
-                  <td>{user.joined}</td>
+              {users.map(user => (
+                <tr key={user._id}>
+                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.firstName} {user.lastName}</td>
+                  <td><span className={`role-badge ${user.roles[0]?.toLowerCase()}`}>{user.roles.join(', ')}</span></td>
                   <td>
-                    <button className="btn-action">Edit</button>
+                    <span style={{ fontSize: '0.85rem', color: user.verification?.verificationStatus === 'verified' ? '#10b981' : 'var(--text-secondary)' }}>
+                      {user.verification?.verificationStatus || 'N/A'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${user.accountStatus?.isSuspended ? 'suspended' : 'active'}`}>
+                      {user.accountStatus?.isSuspended ? 'Suspended' : 'Active'}
+                    </span>
+                  </td>
+                  <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td style={{ display: 'flex', gap: '8px' }}>
+                    {user.roles.includes('provider') && (
+                      <button 
+                        className="btn-action" 
+                        onClick={() => toggleVerification(user._id, user.verification?.verificationStatus)}
+                      >
+                        {user.verification?.verificationStatus === 'verified' ? 'Unverify' : 'Verify'}
+                      </button>
+                    )}
+                    <button 
+                      className="btn-action" 
+                      style={{ color: '#ef4444' }}
+                      onClick={() => toggleSuspension(user._id, user.accountStatus?.isSuspended)}
+                    >
+                      {user.accountStatus?.isSuspended ? 'Unsuspend' : 'Suspend'}
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -1,11 +1,33 @@
+import React, { useState, useEffect } from 'react';
+import api from '../api';
 import './UsersList.css';
 
-const mockReports = [
-  { id: 101, reporter: 'Charlie Prince', reportedUser: 'Bob Builder', reason: 'No-show for booking', status: 'Open' },
-  { id: 102, reporter: 'Diana Prince', reportedUser: 'Alice Cooper', reason: 'Rude behavior', status: 'Resolved' },
-];
-
 export default function Reports() {
+  const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      const res = await api.get('/admin/reports');
+      setReports(res.data);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    }
+  };
+
+  const resolveReport = async (id, currentStatus) => {
+    if (currentStatus === 'resolved') return;
+    try {
+      await api.patch(`/admin/reports/${id}/resolve`, { status: 'resolved', resolutionNotes: 'Resolved by admin' });
+      fetchReports();
+    } catch (error) {
+      console.error('Error resolving report:', error);
+    }
+  };
+
   return (
     <div className="animate-fade-in users-container">
       <div className="glass-card table-card">
@@ -25,15 +47,19 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody>
-              {mockReports.map(rep => (
-                <tr key={rep.id}>
-                  <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>#{rep.id}</td>
-                  <td>{rep.reporter}</td>
-                  <td>{rep.reportedUser}</td>
+              {reports.map(rep => (
+                <tr key={rep._id}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{rep._id.substring(0, 8)}...</td>
+                  <td>{rep.reporterId?.firstName} {rep.reporterId?.lastName}</td>
+                  <td>{rep.reportedUserId?.firstName} {rep.reportedUserId?.lastName}</td>
                   <td>{rep.reason}</td>
-                  <td><span className={`status-badge ${rep.status.toLowerCase()}`}>{rep.status}</span></td>
+                  <td><span className={`status-badge ${rep.status?.toLowerCase() || 'pending'}`}>{rep.status || 'Pending'}</span></td>
                   <td>
-                    <button className="btn-action">Review</button>
+                    {rep.status !== 'resolved' && (
+                      <button className="btn-action" onClick={() => resolveReport(rep._id, rep.status)}>
+                        Mark Resolved
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

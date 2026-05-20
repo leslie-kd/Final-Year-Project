@@ -1,0 +1,4 @@
+# Ignore project management and tracking markdown files
+backend-recs.md
+progress.md
+checks.md

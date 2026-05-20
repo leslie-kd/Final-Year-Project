@@ -1,11 +1,6 @@
+import React, { useState, useEffect } from 'react';
+import api from '../api';
 import './DashboardOverview.css';
-
-const stats = [
-  { id: 1, title: 'Total Users', value: '12,450' },
-  { id: 2, title: 'Active Providers', value: '3,842' },
-  { id: 3, title: 'Bookings Today', value: '428' },
-  { id: 4, title: 'Pending Reports', value: '15' }
-];
 
 const mockActivity = [
   { id: 1, action: 'New Provider Registration', user: 'John Doe (Plumber)', time: '2 mins ago' },
@@ -15,6 +10,27 @@ const mockActivity = [
 ];
 
 export default function DashboardOverview() {
+  const [stats, setStats] = useState([
+    { id: 1, title: 'Total Users', value: '...' },
+    { id: 2, title: 'Active Providers', value: '...' },
+    { id: 3, title: 'Bookings Today', value: '...' },
+    { id: 4, title: 'Pending Reports', value: '...' }
+  ]);
+
+  useEffect(() => {
+    api.get('/admin/analytics')
+      .then(res => {
+        const data = res.data;
+        setStats([
+          { id: 1, title: 'Total Users', value: data.totalUsers },
+          { id: 2, title: 'Active Providers', value: data.activeProviders },
+          { id: 3, title: 'Bookings Today', value: data.bookingsToday },
+          { id: 4, title: 'Pending Reports', value: data.pendingReports }
+        ]);
+      })
+      .catch(err => console.error('Error fetching analytics:', err));
+  }, []);
+
   return (
     <div className="animate-fade-in">
       <div className="dashboard-grid">

@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import './AdminLogin.css';
+import api from '../api';
 
 export default function AdminLogin({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onLogin();
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      // Here you can verify if response.data.roles includes 'admin'
+      onLogin();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+    }
   };
 
   return (
@@ -16,6 +25,8 @@ export default function AdminLogin({ onLogin }) {
         <h1 className="login-title">ServiPro Admin</h1>
         <p className="login-subtitle">Sign in to the management dashboard</p>
         
+        {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="input-group">
             <label>Email Address</label>
