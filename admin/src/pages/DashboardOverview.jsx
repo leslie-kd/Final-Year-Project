@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import './DashboardOverview.css';
+import { Users, Wrench, Calendar, AlertTriangle } from 'lucide-react';
 
 const mockActivity = [
   { id: 1, action: 'New Provider Registration', user: 'John Doe (Plumber)', time: '2 mins ago' },
@@ -10,63 +11,92 @@ const mockActivity = [
 ];
 
 export default function DashboardOverview() {
-  const [stats, setStats] = useState([
-    { id: 1, title: 'Total Users', value: '...' },
-    { id: 2, title: 'Active Providers', value: '...' },
-    { id: 3, title: 'Bookings Today', value: '...' },
-    { id: 4, title: 'Pending Reports', value: '...' }
-  ]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setError('');
     api.get('/admin/analytics')
       .then(res => {
-        const data = res.data;
-        setStats([
-          { id: 1, title: 'Total Users', value: data.totalUsers },
-          { id: 2, title: 'Active Providers', value: data.activeProviders },
-          { id: 3, title: 'Bookings Today', value: data.bookingsToday },
-          { id: 4, title: 'Pending Reports', value: data.pendingReports }
-        ]);
+        setStats(res.data);
       })
-      .catch(err => console.error('Error fetching analytics:', err));
+      .catch(() => setError('Could not load stats'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
+  const cards = [
+    { title: 'Total Users', value: stats?.totalUsers, icon: <Users size={20} />, color: '#2D728F' },
+    { title: 'Active Providers', value: stats?.activeProviders, icon: <Wrench size={20} />, color: '#1A4731' },
+    { title: 'Bookings Today', value: stats?.bookingsToday, icon: <Calendar size={20} />, color: '#C5A059' },
+    { title: 'Pending Reports', value: stats?.pendingReports, icon: <AlertTriangle size={20} />, color: '#EF4444' },
+  ];
+
   return (
-    <div className="animate-fade-in">
+    <div>
+      <div className="page-header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1>Dashboard</h1>
+            <p>Platform overview — live data from the database.</p>
+          </div>
+          <button className="refresh-btn" onClick={load} disabled={loading}>
+            {loading ? '↻ Loading…' : '↻ Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="error-banner">⚠️ {error}</div>
+      )}
+
       <div className="dashboard-grid">
-        {stats.map(stat => (
-          <div key={stat.id} className="glass-card stat-card">
-            <span className="stat-title">{stat.title}</span>
-            <span className="stat-value">{stat.value}</span>
+        {cards.map((card, i) => (
+          <div key={i} className="card stat-card">
+            <div className="stat-top">
+              <span className="stat-icon" style={{ background: card.color + '22', color: card.color }}>
+                {card.icon}
+              </span>
+            </div>
+            <div className="stat-value">
+              {loading ? <span className="stat-skeleton" /> : (card.value ?? 0)}
+            </div>
+            <div className="stat-title">{card.title}</div>
           </div>
         ))}
       </div>
 
-      <div className="chart-section">
-        <div className="glass-card">
-          <h2 style={{ marginBottom: '1.5rem', fontWeight: 600, fontSize: '1.4rem' }}>Revenue & Activity Overview</h2>
+      <div className="dashboard-row">
+        <div className="card" style={{ flex: 1 }}>
+          <h2 className="section-title">Revenue & Activity Overview</h2>
           <div style={{ 
-            height: '350px', 
+            height: '250px', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            color: 'var(--text-secondary)', 
-            border: '2px dashed var(--glass-border)', 
+            color: '#94A3B8', 
+            border: '2px dashed #EBE8E0', 
             borderRadius: '0.75rem',
-            background: 'rgba(0,0,0,0.2)'
+            background: '#FAF9F6',
+            marginTop: '1rem'
           }}>
             <p style={{ opacity: 0.7, fontWeight: 500 }}>[ Interactive Chart Placeholder ]</p>
           </div>
         </div>
 
-        <div className="glass-card">
-          <h2 style={{ fontWeight: 600, fontSize: '1.4rem' }}>Recent Activity</h2>
-          <div className="recent-activity">
+        <div className="card" style={{ flex: 1 }}>
+          <h2 className="section-title">Recent Activity</h2>
+          <div className="booking-stats" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             {mockActivity.map(item => (
               <div key={item.id} className="activity-item">
                 <div className="activity-info">
-                  <h4>{item.action}</h4>
-                  <p>{item.user}</p>
+                  <div className="activity-user">{item.action}</div>
+                  <div className="activity-action">{item.user}</div>
                 </div>
                 <span className="activity-time">{item.time}</span>
               </div>

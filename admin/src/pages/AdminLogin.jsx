@@ -1,55 +1,143 @@
 import { useState } from 'react';
 import './AdminLogin.css';
 import api from '../api';
+import { Settings } from 'lucide-react';
 
 export default function AdminLogin({ onLogin }) {
+  const [tab, setTab] = useState('signin');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const reset = () => {
+    setError('');
+    setSuccess('');
+  };
+
+  const handleSignIn = async (e) => {
     e.preventDefault();
+    reset();
+    setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
-      // Here you can verify if response.data.roles includes 'admin'
       onLogin();
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    reset();
+    if (!name.trim()) { setError('Please enter your full name.'); return; }
+    setLoading(true);
+    try {
+      // Note: Assumes /auth/register exists. If not, this is a mockup of the flow.
+      const response = await api.post('/auth/register', { name, email, password });
+      onLogin();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="admin-login-container">
-      <div className="glass-card login-card animate-fade-in">
-        <h1 className="login-title">ServiPro Admin</h1>
-        <p className="login-subtitle">Sign in to the management dashboard</p>
-        
-        {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+      <div className="login-card">
+        <div className="login-header">
+          <div className="login-logo"><Settings size={40} color="#C5A059" /></div>
+          <h1>Artisan Hunt</h1>
+          <p>{tab === 'signin' ? 'Sign in to your account' : 'Create a new account'}</p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="input-group">
-            <label>Email Address</label>
-            <input 
-              type="email" 
-              placeholder="admin@servipro.com" 
+        <div className="auth-tabs">
+          <button
+            className={`auth-tab ${tab === 'signin' ? 'active' : ''}`}
+            onClick={() => { setTab('signin'); reset(); }}
+          >
+            Sign In
+          </button>
+          <button
+            className={`auth-tab ${tab === 'signup' ? 'active' : ''}`}
+            onClick={() => { setTab('signup'); reset(); }}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <form onSubmit={tab === 'signin' ? handleSignIn : handleSignUp} className="login-form">
+          {error && <div className="login-error">{error}</div>}
+          {success && <div className="login-success">{success}</div>}
+
+          {tab === 'signup' && (
+            <div className="form-group">
+              <label htmlFor="name">Full Name</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Your full name"
+                required
+              />
+            </div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
             />
           </div>
-          <div className="input-group">
-            <label>Password</label>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
+              minLength={6}
+              required
             />
           </div>
-          <button type="submit" className="login-btn">Secure Login</button>
+
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading
+              ? (tab === 'signin' ? 'Signing in…' : 'Creating account…')
+              : (tab === 'signin' ? 'Sign In' : 'Create Account')}
+          </button>
         </form>
+
+        <p className="auth-switch">
+          {tab === 'signin' ? (
+            <>Don't have an account?{' '}
+              <button className="auth-switch-btn" type="button" onClick={() => { setTab('signup'); reset(); }}>
+                Sign Up
+              </button>
+            </>
+          ) : (
+            <>Already have an account?{' '}
+              <button className="auth-switch-btn" type="button" onClick={() => { setTab('signin'); reset(); }}>
+                Sign In
+              </button>
+            </>
+          )}
+        </p>
       </div>
     </div>
   );
